@@ -2,6 +2,12 @@
 
 import sys
 
+# op codes
+HLT = 0b00000001
+LDI = 0b10000010
+PRN = 0b01000111
+
+
 class CPU:
     """Main CPU class."""
 
@@ -71,4 +77,22 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        while True:
+            op_code = self.ram[self.pc]
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+
+            if op_code == LDI:
+                # set the value of a register to an int
+                self.reg[operand_a] = operand_b
+                self.pc += 3              
+            elif op_code == HLT:
+                sys.exit(0)
+            elif op_code == PRN:
+                # print to the console the decimal int value stored in given register
+                num = self.reg[operand_a]
+                print(num)
+                self.pc += 2
+            else:
+                print(f"Instruction {op_code} is unknown")
+                sys.exit(1)
