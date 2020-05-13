@@ -6,6 +6,9 @@ import sys
 LDI = 0b10000010
 HLT = 0b00000001
 PRN = 0b01000111
+MUL = 0b10100010
+POP = 0b01000110
+PUSH = 0b01000101
 
 
 class CPU:
@@ -16,6 +19,8 @@ class CPU:
         self.ram = [0] * 256
         self.pc = 0
         self.reg = [0] * 8 
+        self.pointer = 7
+        self.reg[self.pointer] = len(self.ram) - 1
 
     def load(self):
         """Load a program into memory."""
@@ -61,6 +66,8 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
+        elif op == MUL:
+            self.reg[reg_a] *= self.reg[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -110,6 +117,27 @@ class CPU:
                 num = self.reg[operand_a]
                 print(num)
                 self.pc += 2
+            elif op_code == MUL:
+                self.alu(op_code, operand_a, operand_b)
+                self.pc += 3
+            elif op_code == POP:
+                # pop value of stack at pointer location
+                value = self.ram[self.reg[self.pointer]]
+                register = self.ram[self.pc + 1]
+                # store value in given register
+                self.reg[register] = value
+                # increment the stack pointer
+                self.reg[self.pointer] += 1
+                self.pc += 2 
+            elif op_code == PUSH:
+                register = self.ram[self.pc + 1]
+                # decrement the stack pointer
+                self.reg[self.pointer] -= 1
+                # read the next value for register location
+                reg_value = self.reg[register]
+                # add the value from that register and add to stack
+                self.ram[self.reg[self.pointer]] = reg_value
+                self.pc += 2 
             else:
                 print(f"Instruction {op_code} is unknown")
                 sys.exit(1)
