@@ -12,6 +12,7 @@ class CPU:
         self.ram = [0] * 256
         self.pc = 0
         self.reg = [0] * 8 
+        self.fl = [0] * 8 
         self.pointer = 7
         self.reg[self.pointer] = len(self.ram) - 1
         self.branchtable = {
@@ -20,7 +21,10 @@ class CPU:
             0b01000111: self.opcode_PRN,
             0b10100010: self.opcode_MUL,
             0b01000110: self.opcode_POP,
-            0b01000101: self.opcode_PUSH
+            0b01000101: self.opcode_PUSH,
+            0b01010000: self.opcode_CALL,
+            0b00010001: self.opcode_RET,
+            0b10100111: self.opcode_CMP
         }
 
     def load(self):
@@ -51,6 +55,19 @@ class CPU:
         elif op == self.branchtable[0b10100010]:
             self.reg[reg_a] *= self.reg[reg_b]
         #elif op == "SUB": etc
+        elif op == self.branchtable[0b10100111]:
+            if self.reg[reg_a] == self.reg[reg_b]:
+                # set the E flag to 1
+                self.fl = 0b00000001
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                # set the L flag to 1
+                self.fl = 0b00000100
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                # set the G flag to 1
+                self.fl = 0b00000010
+            else:
+                # set the flag to 0
+                self.fl = 0b00000000
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -133,3 +150,27 @@ class CPU:
         # add the value from that register and add to stack
         self.ram[self.reg[self.pointer]] = reg_value
         self.pc += 2
+    
+    def opcode_CALL(self, a, b):
+        # store the next line to execute on the stack
+        # return this line after the subroutine 
+        self.reg[self.pointer] -= 1
+        self.ram[self.reg[self.pointer]] = self.pc + 2
+        # read which register stores the next line passed w/call 
+        register = self.ram[self.pc + 1]
+        # set the PC to the value in that register
+        self.pc = self.reg[register]
+
+    def opcode_RET(self, a, b):
+        # pop the current value off stack
+        return_address = self.ram[self.reg[self.pointer]]
+        # increment the stack pointer up the stack
+        self.reg[self.pointer] += 1
+        # set the pc to that value
+        self.pc = return_address
+
+    def opcode_CMP(self, a, b):
+        ir = self.ram[self.pc]
+        x = self.branchtable[ir]
+        self.alu(x, a, b)
+        self.pc += 3
